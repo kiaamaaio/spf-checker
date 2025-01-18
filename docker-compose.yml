@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  app:
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app/spf-checker
+    stdin_open: true
+    tty: true
+    environment:
+      TZ: Asia/Tokyo
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
