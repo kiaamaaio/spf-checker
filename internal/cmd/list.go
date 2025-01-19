@@ -12,25 +12,25 @@ type ListCmd struct {
 	domain string
 }
 
-func (l ListCmd) Name() string {
+func (l *ListCmd) Name() string {
 	return "list"
 }
 
-func (l ListCmd) Synopsis() string {
+func (l *ListCmd) Synopsis() string {
 	return "List spf records for the domain."
 }
 
-func (l ListCmd) Usage() string {
+func (l *ListCmd) Usage() string {
 	return `list -domain <domain>:
 	List spf records for the domain.
 `
 }
 
-func (l ListCmd) SetFlags(set *flag.FlagSet) {
+func (l *ListCmd) SetFlags(set *flag.FlagSet) {
 	set.StringVar(&l.domain, "domain", "", "Domain to check")
 }
 
-func (l ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 
 	d := dns.NewDomain(l.domain)
 	records, err := d.GetSpfRecords()

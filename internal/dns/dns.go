@@ -7,7 +7,7 @@ type Domain struct {
 }
 
 func NewDomain(name string) *Domain {
-	return &Domain{name}
+	return &Domain{name: name}
 }
 
 func (d *Domain) GetSpfRecords() ([]string, error) {
