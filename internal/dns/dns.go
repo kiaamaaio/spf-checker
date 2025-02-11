@@ -2,6 +2,8 @@ package dns
 
 import "net"
 
+var spfVersion string = "v=spf1"
+
 type Domain struct {
 	name string
 }
@@ -18,7 +20,8 @@ func (d *Domain) GetSpfRecords() ([]string, error) {
 
 	var spfRecords []string
 	for _, txtRecord := range txtRecords {
-		if len(txtRecord) >= 4 && txtRecord[:4] == "v=spf" {
+
+		if len(txtRecord) >= 6 && txtRecord[:6] == spfVersion {
 			spfRecords = append(spfRecords, txtRecord)
 		}
 	}
