@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/google/subcommands"
+	"spf-checker/internal/delimiter"
 	"spf-checker/internal/dns"
 )
 
@@ -39,7 +40,11 @@ func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfac
 		return subcommands.ExitFailure
 	}
 
-	fmt.Printf("list: %v", records)
+	var displayRecords []string
+	for _, record := range records {
+		displayRecords = append(displayRecords, delimiter.Whitespace(record))
+	}
+	fmt.Println(delimiter.Element(displayRecords))
 
 	return subcommands.ExitSuccess
 }
