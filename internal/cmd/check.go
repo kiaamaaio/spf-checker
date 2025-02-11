@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/google/subcommands"
+	"spf-checker/internal/dns"
 )
 
 type CheckCmd struct {
@@ -33,7 +34,28 @@ func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
 
 func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 
-	fmt.Println("test")
+	d := dns.NewDomain(c.domain)
+	records, err := d.GetSpfRecords()
+	if err != nil {
+		fmt.Printf("Failed to get spf records. (err: %v)\n", err)
+		return subcommands.ExitFailure
+	}
 
-	return subcommands.ExitSuccess
+	var checkedResult bool
+	for _, record := range records {
+		sr := dns.NewSpfRecord(record)
+		checkedResult, err = sr.Check(c.ipAddr)
+
+		if err != nil {
+			fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, record)
+			return subcommands.ExitFailure
+		}
+		if checkedResult {
+			fmt.Printf("%t\n", checkedResult)
+			return subcommands.ExitSuccess
+		}
+	}
+
+	fmt.Printf("%t\n", checkedResult)
+	return subcommands.ExitFailure
 }
