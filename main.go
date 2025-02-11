@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(&cmd.ListCmd{}, "")
 	subcommands.Register(&cmd.CheckCmd{}, "")
 	flag.Parse()
