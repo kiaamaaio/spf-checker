@@ -17,7 +17,7 @@ func (c *CheckCmd) Name() string {
 }
 
 func (c *CheckCmd) Synopsis() string {
-	return "Check if an ip address is in the spf record."
+	return "check if an ip address is in the spf record."
 }
 
 func (c *CheckCmd) Usage() string {

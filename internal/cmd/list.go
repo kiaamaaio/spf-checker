@@ -18,7 +18,7 @@ func (l *ListCmd) Name() string {
 }
 
 func (l *ListCmd) Synopsis() string {
-	return "List spf records for the domain."
+	return "list spf records for the domain."
 }
 
 func (l *ListCmd) Usage() string {
