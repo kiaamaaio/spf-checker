@@ -34,16 +34,14 @@ func (l *ListCmd) SetFlags(set *flag.FlagSet) {
 func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 
 	d := dns.NewDomain(l.domain)
-	records, err := d.GetSpfRecords()
+	txtRecord, err := d.GetSpfRecord()
 	if err != nil {
 		fmt.Printf("Failed to get spf records. (err: %v)\n", err)
 		return subcommands.ExitFailure
 	}
 
 	var displayRecords []string
-	for _, record := range records {
-		displayRecords = append(displayRecords, delimiter.Whitespace(record))
-	}
+	displayRecords = append(displayRecords, delimiter.Whitespace(txtRecord))
 	fmt.Println(delimiter.Element(displayRecords))
 
 	return subcommands.ExitSuccess

@@ -12,19 +12,19 @@ func NewDomain(name string) *Domain {
 	return &Domain{name: name}
 }
 
-func (d *Domain) GetSpfRecords() ([]string, error) {
+func (d *Domain) GetSpfRecord() (string, error) {
 	txtRecords, err := net.LookupTXT(d.name)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var spfRecords []string
+	var spfRecord string
 	for _, txtRecord := range txtRecords {
 
 		if len(txtRecord) >= 6 && txtRecord[:6] == spfVersion {
-			spfRecords = append(spfRecords, txtRecord)
+			spfRecord = txtRecord
 		}
 	}
 
-	return spfRecords, nil
+	return spfRecord, nil
 }

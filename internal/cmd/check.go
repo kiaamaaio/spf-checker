@@ -35,25 +35,23 @@ func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
 func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 
 	d := dns.NewDomain(c.domain)
-	records, err := d.GetSpfRecords()
+	txtRecord, err := d.GetSpfRecord()
 	if err != nil {
 		fmt.Printf("Failed to get spf records. (err: %v)\n", err)
 		return subcommands.ExitFailure
 	}
 
 	var isIPListedInSpf bool
-	for _, record := range records {
-		sr := dns.NewSpfRecord(record)
-		isIPListedInSpf, err = sr.ContainsIP(c.ipAddr)
+	sr := dns.NewSpfRecord(txtRecord)
+	isIPListedInSpf, err = sr.ContainsIP(c.ipAddr)
 
-		if err != nil {
-			fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, record)
-			return subcommands.ExitFailure
-		}
-		if isIPListedInSpf {
-			fmt.Printf("%s\n", record)
-			return subcommands.ExitSuccess
-		}
+	if err != nil {
+		fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, txtRecord)
+		return subcommands.ExitFailure
+	}
+	if isIPListedInSpf {
+		fmt.Printf("%s\n", txtRecord)
+		return subcommands.ExitSuccess
 	}
 
 	return subcommands.ExitSuccess
