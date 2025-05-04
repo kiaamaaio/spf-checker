@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestSpfCheck(t *testing.T) {
+func TestSpfContainsIP(t *testing.T) {
 	tests := []struct {
 		txtRecord string
 		ip        string
@@ -34,7 +34,7 @@ func TestSpfCheck(t *testing.T) {
 
 	for _, tt := range tests {
 		sr := NewSpfRecord(tt.txtRecord)
-		got, err := sr.Check(tt.ip)
+		got, err := sr.ContainsIP(tt.ip)
 		if err != nil {
 			t.Errorf("Check(%s) returned error: %v", tt.ip, err)
 			continue

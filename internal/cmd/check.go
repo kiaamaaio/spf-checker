@@ -44,7 +44,7 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 	var checkedResult bool
 	for _, record := range records {
 		sr := dns.NewSpfRecord(record)
-		checkedResult, err = sr.Check(c.ipAddr)
+		checkedResult, err = sr.ContainsIP(c.ipAddr)
 
 		if err != nil {
 			fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, record)

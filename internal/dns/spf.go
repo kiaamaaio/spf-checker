@@ -31,7 +31,7 @@ func NewSpfRecord(txtRecord string) *SpfRecord {
 	return &SpfRecord{txt: txtRecord, ip4: ip4, ip6: ip6}
 }
 
-func (sr *SpfRecord) Check(ipaddr string) (bool, error) {
+func (sr *SpfRecord) ContainsIP(ipaddr string) (bool, error) {
 	spfIpaddrs := append(sr.ip4, sr.ip6...)
 
 	parsedIpAddr := net.ParseIP(ipaddr)
