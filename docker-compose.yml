@@ -1,9 +1,25 @@
 version: '3.9'
 services:
+  dns:
+    build:
+      context: ./docker/dns
+      dockerfile: Dockerfile
+    networks:
+      - test-network
+    ports:
+      - "8053:53/udp"
+    volumes:
+      - ./docker/dns/bind/named.conf:/etc/bind/named.conf
+      - ./docker/dns/bind/zone:/etc/bind/zone
+
   app:
+    depends_on:
+      - dns
     build:
       context: ./docker/app
       dockerfile: Dockerfile
+    networks:
+      - test-network
     volumes:
       - ./:/app/spf-checker
     stdin_open: true
@@ -13,3 +29,7 @@ services:
     dns:
       - 8.8.8.8
       - 8.8.4.4
+
+networks:
+  test-network:
+    driver: bridge
