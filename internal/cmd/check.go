@@ -41,21 +41,20 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 		return subcommands.ExitFailure
 	}
 
-	var checkedResult bool
+	var isIPListedInSpf bool
 	for _, record := range records {
 		sr := dns.NewSpfRecord(record)
-		checkedResult, err = sr.ContainsIP(c.ipAddr)
+		isIPListedInSpf, err = sr.ContainsIP(c.ipAddr)
 
 		if err != nil {
 			fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, record)
 			return subcommands.ExitFailure
 		}
-		if checkedResult {
-			fmt.Printf("%t\n", checkedResult)
+		if isIPListedInSpf {
+			fmt.Printf("%s\n", record)
 			return subcommands.ExitSuccess
 		}
 	}
 
-	fmt.Printf("%t\n", checkedResult)
-	return subcommands.ExitFailure
+	return subcommands.ExitSuccess
 }
