@@ -34,21 +34,19 @@ func NewSpfRecord(txtRecord string) *SpfRecord {
 func (sr *SpfRecord) Check(ipaddr string) (bool, error) {
 	spfIpaddrs := append(sr.ip4, sr.ip6...)
 
+	parsedIpAddr := net.ParseIP(ipaddr)
+	if parsedIpAddr == nil {
+		return false, fmt.Errorf("%s is invalid IP address", ipaddr)
+	}
+
 	for _, spfIpaddr := range spfIpaddrs {
-		_, ip4Cidr, err := net.ParseCIDR(spfIpaddr)
+		_, ipNet, err := net.ParseCIDR(spfIpaddr)
 		if err != nil {
 			return false, err
 		}
-
-		parsedIpAddr := net.ParseIP(ipaddr)
-		if parsedIpAddr == nil {
-			return false, fmt.Errorf("Invalid ip address %s", ipaddr)
-		}
-
-		if ip4Cidr.Contains(parsedIpAddr) {
+		if ipNet.Contains(parsedIpAddr) {
 			return true, nil
 		}
-		return false, nil
 	}
 
 	return false, nil
