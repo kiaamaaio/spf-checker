@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"fmt"
 	"net"
 	"strings"
 )
@@ -19,7 +20,7 @@ func NewDomain(name string) *Domain {
 func (d *Domain) GetSpfRecord() (string, error) {
 	txtRecords, err := txtLookupFunc(d.name)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w (detail: %v)", ErrorNoTxtRecord, err)
 	}
 
 	var spfRecord string
