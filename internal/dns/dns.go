@@ -23,13 +23,11 @@ func (d *Domain) GetSpfRecord() (string, error) {
 		return "", fmt.Errorf("%w (detail: %v)", ErrorNoTxtRecord, err)
 	}
 
-	var spfRecord string
 	for _, txtRecord := range txtRecords {
-
 		if strings.HasPrefix(txtRecord, spfVersion) {
-			spfRecord = txtRecord
+			return txtRecord, nil
 		}
 	}
 
-	return spfRecord, nil
+	return "", ErrorNoSpfRecord
 }

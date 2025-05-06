@@ -37,7 +37,7 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 
 	d := dns.NewDomain(c.domain)
 	txtRecord, err := d.GetSpfRecord()
-	if errors.Is(err, dns.ErrorNoTxtRecord) {
+	if errors.Is(err, dns.ErrorNoTxtRecord) || errors.Is(err, dns.ErrorNoSpfRecord) {
 		fmt.Println(err)
 		return subcommands.ExitSuccess
 	}
