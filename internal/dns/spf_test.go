@@ -36,11 +36,11 @@ func TestSpfContainsIP(t *testing.T) {
 		sr := NewSpfRecord(tt.txtRecord)
 		got, err := sr.ContainsIP(tt.ip)
 		if err != nil {
-			t.Errorf("Check(%s) returned error: %v", tt.ip, err)
+			t.Errorf("check(%s) returned error: %v", tt.ip, err)
 			continue
 		}
 		if got != tt.want {
-			t.Errorf("Check(%s) = %v; want %v", tt.ip, got, tt.want)
+			t.Errorf("check(%s) = %v; want %v", tt.ip, got, tt.want)
 		}
 	}
 }

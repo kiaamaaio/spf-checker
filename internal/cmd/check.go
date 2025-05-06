@@ -19,7 +19,7 @@ func (c *CheckCmd) Name() string {
 }
 
 func (c *CheckCmd) Synopsis() string {
-	return "check if an ip address is in the spf record."
+	return "check if an ip address is in the spf record"
 }
 
 func (c *CheckCmd) Usage() string {
@@ -29,8 +29,8 @@ func (c *CheckCmd) Usage() string {
 }
 
 func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
-	set.StringVar(&c.domain, "domain", "", "Domain to check")
-	set.StringVar(&c.ipAddr, "ipaddr", "", "IP address to check")
+	set.StringVar(&c.domain, "domain", "", "domain to check")
+	set.StringVar(&c.ipAddr, "ipaddr", "", "ip address to check")
 }
 
 func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
@@ -51,7 +51,7 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 	isIPListedInSpf, err = sr.ContainsIP(c.ipAddr)
 
 	if err != nil {
-		fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, txtRecord)
+		fmt.Printf("failed to check record (err:%v, txtRecord:%s)\n", err, txtRecord)
 		return subcommands.ExitFailure
 	}
 	if isIPListedInSpf {

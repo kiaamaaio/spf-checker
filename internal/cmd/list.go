@@ -18,7 +18,7 @@ func (l *ListCmd) Name() string {
 }
 
 func (l *ListCmd) Synopsis() string {
-	return "list spf records for the domain."
+	return "list spf records for the domain"
 }
 
 func (l *ListCmd) Usage() string {
@@ -28,7 +28,7 @@ func (l *ListCmd) Usage() string {
 }
 
 func (l *ListCmd) SetFlags(set *flag.FlagSet) {
-	set.StringVar(&l.domain, "domain", "", "Domain to check")
+	set.StringVar(&l.domain, "domain", "", "domain to check")
 }
 
 func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
@@ -36,7 +36,7 @@ func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfac
 	d := dns.NewDomain(l.domain)
 	txtRecord, err := d.GetSpfRecord()
 	if err != nil {
-		fmt.Printf("Failed to get spf records. (err: %v)\n", err)
+		fmt.Printf("failed to get spf records (err: %v)\n", err)
 		return subcommands.ExitFailure
 	}
 
