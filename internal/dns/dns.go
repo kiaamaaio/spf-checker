@@ -1,6 +1,9 @@
 package dns
 
-import "net"
+import (
+	"net"
+	"strings"
+)
 
 var spfVersion string = "v=spf1"
 var txtLookupFunc = net.LookupTXT
@@ -22,7 +25,7 @@ func (d *Domain) GetSpfRecord() (string, error) {
 	var spfRecord string
 	for _, txtRecord := range txtRecords {
 
-		if len(txtRecord) >= 6 && txtRecord[:6] == spfVersion {
+		if strings.HasPrefix(txtRecord, spfVersion) {
 			spfRecord = txtRecord
 		}
 	}
