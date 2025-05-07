@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/google/subcommands"
@@ -35,8 +36,12 @@ func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfac
 
 	d := dns.NewDomain(l.domain)
 	txtRecord, err := d.GetSpfRecord()
+	if errors.Is(err, dns.ErrorNoTxtRecord) || errors.Is(err, dns.ErrorNoSpfRecord) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
 	if err != nil {
-		fmt.Printf("failed to get spf records (err: %v)\n", err)
+		fmt.Printf("unexpected error: %v)\n", err)
 		return subcommands.ExitFailure
 	}
 
