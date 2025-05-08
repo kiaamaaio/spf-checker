@@ -6,8 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/google/subcommands"
-	"spf-checker/internal/delimiter"
 	"spf-checker/internal/dns"
+	"spf-checker/internal/formatter"
 )
 
 type ListCmd struct {
@@ -45,9 +45,7 @@ func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfac
 		return subcommands.ExitFailure
 	}
 
-	var displayRecords []string
-	displayRecords = append(displayRecords, delimiter.Whitespace(txtRecord))
-	fmt.Println(delimiter.Element(displayRecords))
+	fmt.Println(formatter.FormatSpfRecordAligned(txtRecord))
 
 	return subcommands.ExitSuccess
 }
