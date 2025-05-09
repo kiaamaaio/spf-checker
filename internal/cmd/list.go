@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/google/subcommands"
 	"spf-checker/internal/dns"
-	"spf-checker/internal/formatter"
+	"spf-checker/internal/output"
 )
 
 type ListCmd struct {
@@ -45,7 +45,7 @@ func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfac
 		return subcommands.ExitFailure
 	}
 
-	fmt.Println(formatter.FormatSpfRecordAligned(txtRecord))
+	fmt.Println(output.FormatSpfRecordAligned(txtRecord))
 
 	return subcommands.ExitSuccess
 }
