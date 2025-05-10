@@ -1,8 +1,8 @@
 package dns
 
 import (
-	"fmt"
 	"net"
+	"spf-checker/internal/validation"
 	"strings"
 )
 
@@ -34,9 +34,9 @@ func NewSpfRecord(txtRecord string) *SpfRecord {
 func (sr *SpfRecord) ContainsIP(ipaddr string) (bool, error) {
 	spfIpaddrs := append(sr.ip4, sr.ip6...)
 
-	parsedIpAddr := net.ParseIP(ipaddr)
-	if parsedIpAddr == nil {
-		return false, fmt.Errorf("%s is invalid IP address", ipaddr)
+	parsedIpAddr, err := validation.ParseIP(ipaddr)
+	if err != nil {
+		return false, err
 	}
 
 	for _, spfIpaddr := range spfIpaddrs {
