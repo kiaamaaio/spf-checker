@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/subcommands"
 	"spf-checker/internal/dns"
+	"spf-checker/internal/validation"
 )
 
 type CheckCmd struct {
@@ -50,6 +51,10 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 	sr := dns.NewSpfRecord(txtRecord)
 	isIPListedInSpf, err = sr.ContainsIP(c.ipAddr)
 
+	if errors.Is(err, validation.ErrorInvalidIpAddress) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
 	if err != nil {
 		fmt.Printf("failed to check record (err:%v, txtRecord:%s)\n", err, txtRecord)
 		return subcommands.ExitFailure
