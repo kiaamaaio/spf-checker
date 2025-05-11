@@ -8,6 +8,7 @@ import (
 	"github.com/google/subcommands"
 	"spf-checker/internal/dns"
 	"spf-checker/internal/output"
+	"spf-checker/internal/validation"
 )
 
 type ListCmd struct {
@@ -33,6 +34,15 @@ func (l *ListCmd) SetFlags(set *flag.FlagSet) {
 }
 
 func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+	_, err := validation.IsValidDnsRecordName(l.domain)
+	if errors.Is(err, validation.ErrorInvalidDnsRecordName) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
+	if err != nil {
+		fmt.Printf("unexpected error: %v)\n", err)
+		return subcommands.ExitFailure
+	}
 
 	d := dns.NewDomain(l.domain)
 	txtRecord, err := d.GetSpfRecord()

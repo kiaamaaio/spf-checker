@@ -35,6 +35,15 @@ func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
 }
 
 func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+	_, err := validation.IsValidDnsRecordName(c.domain)
+	if errors.Is(err, validation.ErrorInvalidDnsRecordName) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
+	if err != nil {
+		fmt.Printf("unexpected error: %v)\n", err)
+		return subcommands.ExitFailure
+	}
 
 	d := dns.NewDomain(c.domain)
 	txtRecord, err := d.GetSpfRecord()
