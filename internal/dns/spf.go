@@ -8,27 +8,30 @@ import (
 
 var mechanismIp4 string = "ip4:"
 var mechanismIp6 string = "ip6:"
+var mechanismInclude string = "include:"
 
 type SpfRecord struct {
-	txt string
-	ip4 []string
-	ip6 []string
+	txt      string
+	ip4      []string
+	ip6      []string
+	includes []string
 }
 
 func NewSpfRecord(txtRecord string) *SpfRecord {
-	var ip4 []string
-	var ip6 []string
+	var ip4, ip6, includes []string
 
 	for _, value := range strings.Fields(txtRecord) {
-		if value[:4] == mechanismIp4 {
+		switch {
+		case strings.HasPrefix(value, mechanismIp4):
 			ip4 = append(ip4, value[4:])
-		}
-		if value[:4] == mechanismIp6 {
+		case strings.HasPrefix(value, mechanismIp6):
 			ip6 = append(ip6, value[4:])
+		case strings.HasPrefix(value, mechanismInclude):
+			includes = append(includes, value[8:])
 		}
 	}
 
-	return &SpfRecord{txt: txtRecord, ip4: ip4, ip6: ip6}
+	return &SpfRecord{txt: txtRecord, ip4: ip4, ip6: ip6, includes: includes}
 }
 
 func (sr *SpfRecord) ContainsIP(ipaddr string) (bool, error) {
@@ -49,5 +52,35 @@ func (sr *SpfRecord) ContainsIP(ipaddr string) (bool, error) {
 		}
 	}
 
+	return false, nil
+}
+
+func (sr *SpfRecord) ContainsIPRecursive(ipaddr string, visited map[string]struct{}) (bool, error) {
+	found, err := sr.ContainsIP(ipaddr)
+	if err != nil || found {
+		return found, err
+	}
+
+	for _, included := range sr.includes {
+		if _, ok := visited[included]; ok {
+			continue
+		}
+		visited[included] = struct{}{}
+
+		d := NewDomain(included)
+		txt, err := d.GetSpfRecord()
+		if err != nil {
+			continue
+		}
+
+		child := NewSpfRecord(txt)
+		found, err := child.ContainsIPRecursive(ipaddr, visited)
+		if err != nil {
+			return false, err
+		}
+		if found {
+			return true, nil
+		}
+	}
 	return false, nil
 }
