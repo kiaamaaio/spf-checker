@@ -1,8 +1,13 @@
 package dns
 
-import "net"
+import (
+	"fmt"
+	"net"
+	"strings"
+)
 
 var spfVersion string = "v=spf1"
+var txtLookupFunc = net.LookupTXT
 
 type Domain struct {
 	name string
@@ -12,19 +17,17 @@ func NewDomain(name string) *Domain {
 	return &Domain{name: name}
 }
 
-func (d *Domain) GetSpfRecords() ([]string, error) {
-	txtRecords, err := net.LookupTXT(d.name)
+func (d *Domain) GetSpfRecord() (string, error) {
+	txtRecords, err := txtLookupFunc(d.name)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("%w (detail: %v)", ErrorNoTxtRecord, err)
 	}
 
-	var spfRecords []string
 	for _, txtRecord := range txtRecords {
-
-		if len(txtRecord) >= 6 && txtRecord[:6] == spfVersion {
-			spfRecords = append(spfRecords, txtRecord)
+		if strings.HasPrefix(txtRecord, spfVersion) {
+			return txtRecord, nil
 		}
 	}
 
-	return spfRecords, nil
+	return "", ErrorNoSpfRecord
 }

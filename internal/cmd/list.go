@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/google/subcommands"
-	"spf-checker/internal/delimiter"
 	"spf-checker/internal/dns"
+	"spf-checker/internal/output"
+	"spf-checker/internal/validation"
 )
 
 type ListCmd struct {
@@ -18,7 +20,7 @@ func (l *ListCmd) Name() string {
 }
 
 func (l *ListCmd) Synopsis() string {
-	return "list spf records for the domain."
+	return "list spf records for the domain"
 }
 
 func (l *ListCmd) Usage() string {
@@ -28,23 +30,32 @@ func (l *ListCmd) Usage() string {
 }
 
 func (l *ListCmd) SetFlags(set *flag.FlagSet) {
-	set.StringVar(&l.domain, "domain", "", "Domain to check")
+	set.StringVar(&l.domain, "domain", "", "domain to check")
 }
 
 func (l *ListCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
-
-	d := dns.NewDomain(l.domain)
-	records, err := d.GetSpfRecords()
+	_, err := validation.IsValidDnsRecordName(l.domain)
+	if errors.Is(err, validation.ErrorInvalidDnsRecordName) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
 	if err != nil {
-		fmt.Printf("Failed to get spf records. (err: %v)\n", err)
+		fmt.Printf("unexpected error: %v)\n", err)
 		return subcommands.ExitFailure
 	}
 
-	var displayRecords []string
-	for _, record := range records {
-		displayRecords = append(displayRecords, delimiter.Whitespace(record))
+	d := dns.NewDomain(l.domain)
+	txtRecord, err := d.GetSpfRecord()
+	if errors.Is(err, dns.ErrorNoTxtRecord) || errors.Is(err, dns.ErrorNoSpfRecord) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
 	}
-	fmt.Println(delimiter.Element(displayRecords))
+	if err != nil {
+		fmt.Printf("unexpected error: %v)\n", err)
+		return subcommands.ExitFailure
+	}
+
+	fmt.Println(output.FormatSpfRecordAligned(txtRecord))
 
 	return subcommands.ExitSuccess
 }

@@ -2,15 +2,18 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/google/subcommands"
 	"spf-checker/internal/dns"
+	"spf-checker/internal/validation"
 )
 
 type CheckCmd struct {
-	domain string
-	ipAddr string
+	domain    string
+	ipAddr    string
+	recursive bool
 }
 
 func (c *CheckCmd) Name() string {
@@ -18,44 +21,63 @@ func (c *CheckCmd) Name() string {
 }
 
 func (c *CheckCmd) Synopsis() string {
-	return "check if an ip address is in the spf record."
+	return "check if an ip address is in the spf record"
 }
 
 func (c *CheckCmd) Usage() string {
-	return `check -domain <domain> -ipaddr <ip address>
+	return `check -recursive -domain <domain> -ipaddr <ip address>
 	Check if an ip address is in the spf record.
 `
 }
 
 func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
-	set.StringVar(&c.domain, "domain", "", "Domain to check")
-	set.StringVar(&c.ipAddr, "ipaddr", "", "IP address to check")
+	set.StringVar(&c.domain, "domain", "", "domain to check")
+	set.StringVar(&c.ipAddr, "ipaddr", "", "ip address to check")
+	set.BoolVar(&c.recursive, "recursive", false, "recursively check include mechanisms")
 }
 
 func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
-
-	d := dns.NewDomain(c.domain)
-	records, err := d.GetSpfRecords()
+	_, err := validation.IsValidDnsRecordName(c.domain)
+	if errors.Is(err, validation.ErrorInvalidDnsRecordName) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
 	if err != nil {
-		fmt.Printf("Failed to get spf records. (err: %v)\n", err)
+		fmt.Printf("unexpected error: %v)\n", err)
 		return subcommands.ExitFailure
 	}
 
-	var checkedResult bool
-	for _, record := range records {
-		sr := dns.NewSpfRecord(record)
-		checkedResult, err = sr.Check(c.ipAddr)
-
-		if err != nil {
-			fmt.Printf("Failed to check record. (err:%v, txtRecord:%s)\n", err, record)
-			return subcommands.ExitFailure
-		}
-		if checkedResult {
-			fmt.Printf("%t\n", checkedResult)
-			return subcommands.ExitSuccess
-		}
+	d := dns.NewDomain(c.domain)
+	txtRecord, err := d.GetSpfRecord()
+	if errors.Is(err, dns.ErrorNoTxtRecord) || errors.Is(err, dns.ErrorNoSpfRecord) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
+	if err != nil {
+		fmt.Printf("unexpected error: %v)\n", err)
+		return subcommands.ExitFailure
 	}
 
-	fmt.Printf("%t\n", checkedResult)
-	return subcommands.ExitFailure
+	var isIPListedInSpf bool
+	sr := dns.NewSpfRecord(txtRecord)
+	if c.recursive {
+		isIPListedInSpf, err = sr.ContainsIPRecursive(c.ipAddr, map[string]struct{}{c.domain: {}})
+	} else {
+		isIPListedInSpf, err = sr.ContainsIP(c.ipAddr)
+	}
+
+	if errors.Is(err, validation.ErrorInvalidIpAddress) {
+		fmt.Println(err)
+		return subcommands.ExitSuccess
+	}
+	if err != nil {
+		fmt.Printf("failed to check record (err:%v, txtRecord:%s)\n", err, txtRecord)
+		return subcommands.ExitFailure
+	}
+	if isIPListedInSpf {
+		fmt.Printf("%s\n", txtRecord)
+		return subcommands.ExitSuccess
+	}
+
+	return subcommands.ExitSuccess
 }

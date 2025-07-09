@@ -1,0 +1,11 @@
+$TTL 3600
+@   IN  SOA ns1.example.test. admin.example.test. (
+        2025050402 ; Serial
+        3600       ; Refresh
+        1800       ; Retry
+        604800     ; Expire
+        86400      ; Negative Cache TTL
+)
+    IN  NS  ns1.example.test.
+ns1 IN  A   192.168.1.100
+@   IN  TXT "v=spf1 ip4:192.0.2.1/24 -all"
