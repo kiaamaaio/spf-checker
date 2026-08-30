@@ -5,24 +5,29 @@ import (
 	"strings"
 )
 
+const (
+	domainMaxLength      = 253
+	domainLabelMaxLength = 63
+)
+
 var dnsLabelRegex = regexp.MustCompile(`^[a-zA-Z0-9_]([a-zA-Z0-9_-]{0,61}[a-zA-Z0-9])?$`)
 
-func IsValidDnsRecordName(name string) (bool, error) {
-	var domainMaxLength = 253
-	var domainLabelMaxLength = 63
+// ValidateDnsRecordName reports whether name is a syntactically valid DNS
+// record name. A single trailing dot (a fully qualified name) is accepted.
+func ValidateDnsRecordName(name string) error {
+	name = strings.TrimSuffix(name, ".")
 
 	if name == "" || len(name) > domainMaxLength {
-		return false, ErrorInvalidDnsRecordName
+		return ErrInvalidDnsRecordName
 	}
 
-	labels := strings.Split(name, ".")
-	for _, label := range labels {
+	for _, label := range strings.Split(name, ".") {
 		if len(label) == 0 || len(label) > domainLabelMaxLength {
-			return false, ErrorInvalidDnsRecordName
+			return ErrInvalidDnsRecordName
 		}
 		if !dnsLabelRegex.MatchString(label) {
-			return false, ErrorInvalidDnsRecordName
+			return ErrInvalidDnsRecordName
 		}
 	}
-	return true, nil
+	return nil
 }

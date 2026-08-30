@@ -2,12 +2,12 @@ package validation
 
 import "net"
 
-var parseIPFunc = net.ParseIP
-
+// ParseIP parses ipaddr and returns ErrInvalidIpAddress when it is not a
+// valid IPv4 or IPv6 address.
 func ParseIP(ipaddr string) (net.IP, error) {
-	parsedIP := parseIPFunc(ipaddr)
+	parsedIP := net.ParseIP(ipaddr)
 	if parsedIP == nil {
-		return nil, ErrorInvalidIpAddress
+		return nil, ErrInvalidIpAddress
 	}
 	return parsedIP, nil
 }

@@ -5,13 +5,14 @@ import (
 	"testing"
 )
 
-func TestIsValidDnsRecordName(t *testing.T) {
+func TestValidateDnsRecordName(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
 		wantErr bool
 	}{
 		{"valid domain", "example.com", false},
+		{"valid trailing dot", "example.com.", false},
 		{"valid underscore prefix", "_spf.example.com", false},
 		{"valid underscore mid", "test_spf.example.com", false},
 		{"invalid label too long", strings.Repeat("a", 64) + ".com", true},
@@ -24,7 +25,7 @@ func TestIsValidDnsRecordName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := IsValidDnsRecordName(tt.input)
+			err := ValidateDnsRecordName(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("unexpected error: %v(input: %s, got: %v)", err, tt.input, tt.wantErr)
 			}

@@ -44,7 +44,7 @@ func TestParseIP(t *testing.T) {
 			gotIP, err := ParseIP(tt.input)
 
 			if tt.wantErr {
-				if !errors.Is(err, ErrorInvalidIpAddress) {
+				if !errors.Is(err, ErrInvalidIpAddress) {
 					t.Errorf("unexpected error: %v", err)
 				}
 				if gotIP != nil {

@@ -2,5 +2,7 @@ package validation
 
 import "errors"
 
-var ErrorInvalidIpAddress = errors.New("invalid ip address")
-var ErrorInvalidDnsRecordName = errors.New("invalid dns record name")
+var (
+	ErrInvalidIpAddress     = errors.New("invalid ip address")
+	ErrInvalidDnsRecordName = errors.New("invalid dns record name")
+)
