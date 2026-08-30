@@ -1,3 +1,4 @@
+// Package cmd は spf-checker のサブコマンドを提供する。
 package cmd
 
 import (
@@ -13,18 +14,27 @@ import (
 	"spf-checker/internal/validation"
 )
 
+// defaultTimeout は DNS 問い合わせの既定のタイムアウトである。
+// 再帰的な評価では最大10回問い合わせるため、1回分ではなく評価全体に
+// 効かせている。
 const defaultTimeout = 10 * time.Second
 
-// Exit statuses. subcommands only defines success/failure/usage-error, so the
-// remaining ones are declared here to keep the cli scriptable.
+// 終了ステータス。subcommands は成功・失敗・引数エラーしか定義していないため、
+// スクリプトから結果を判別できるよう残りをここで定義している。
 const (
+	// exitNotAuthorized は pass 以外の判定を表す。
 	exitNotAuthorized subcommands.ExitStatus = 1
-	exitUsageError    subcommands.ExitStatus = 2
-	exitLookupError   subcommands.ExitStatus = 3
+	// exitUsageError はドメイン名や IP アドレスが不正であることを表す。
+	exitUsageError subcommands.ExitStatus = 2
+	// exitLookupError はレコードを取得・評価できなかったことを表す。
+	exitLookupError subcommands.ExitStatus = 3
 )
 
-// fetchSpfRecord validates the domain and returns its spf record. The returned
-// exit status is meaningful only when ok is false.
+// fetchSpfRecord はドメイン名を検査し、その SPF レコードを取得する。
+// list と check で共通の前処理をまとめたものである。
+//
+// 取得できなかった場合はその内容を errOut に書き、ok に false を返す。
+// 返す終了ステータスは ok が false のときだけ意味を持つ。
 func fetchSpfRecord(ctx context.Context, errOut io.Writer, domain string) (string, subcommands.ExitStatus, bool) {
 	if err := validation.ValidateDnsRecordName(domain); err != nil {
 		fmt.Fprintf(errOut, "%v: %q\n", err, domain)
@@ -44,7 +54,8 @@ func fetchSpfRecord(ctx context.Context, errOut io.Writer, domain string) (strin
 	return record, subcommands.ExitSuccess, true
 }
 
-// contextWithTimeout applies the command timeout, treating zero as "no limit".
+// contextWithTimeout は timeout を適用した context を返す。
+// timeout が 0 以下の場合はタイムアウトを設けない。
 func contextWithTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
 	if timeout <= 0 {
 		return context.WithCancel(ctx)

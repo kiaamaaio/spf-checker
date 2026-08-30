@@ -6,19 +6,19 @@ import (
 	"strings"
 )
 
-// Qualifier is the prefix character that decides the result of a matching
-// mechanism (RFC 7208 4.6.2). An absent qualifier means "+".
+// Qualifier は mechanism の先頭に置かれる修飾子である (RFC 7208 4.6.2)。
+// 修飾子が省略された場合は "+" を指定したものとして扱う。
 type Qualifier byte
 
+// SPF で使える修飾子。
 const (
-	QualifierPass     Qualifier = '+'
-	QualifierFail     Qualifier = '-'
-	QualifierSoftFail Qualifier = '~'
-	QualifierNeutral  Qualifier = '?'
+	QualifierPass     Qualifier = '+' // 一致したら pass
+	QualifierFail     Qualifier = '-' // 一致したら fail
+	QualifierSoftFail Qualifier = '~' // 一致したら softfail
+	QualifierNeutral  Qualifier = '?' // 一致したら neutral
 )
 
-// Result maps a qualifier onto the result it produces when its mechanism
-// matches.
+// Result は、この修飾子を持つ mechanism が一致したときの評価結果を返す。
 func (q Qualifier) Result() Result {
 	switch q {
 	case QualifierFail:
@@ -32,8 +32,8 @@ func (q Qualifier) Result() Result {
 	}
 }
 
-// Mechanism names. They are compared lowercased; spf terms are case
-// insensitive.
+// mechanism の名前。SPF の項目は大文字小文字を区別しないため、
+// 解析時に小文字へ正規化したうえでこれらと比較する。
 const (
 	MechanismAll     = "all"
 	MechanismInclude = "include"
@@ -45,37 +45,51 @@ const (
 	MechanismExists  = "exists"
 )
 
-// Mechanism is a single parsed spf term.
+// Mechanism は解析済みの mechanism 1つを表す。
 type Mechanism struct {
-	Raw       string
+	// Raw はレコード上の表記をそのまま保持する。警告や判定根拠の
+	// 表示に使うため、解析結果とは別に元の文字列を残している。
+	Raw string
+	// Qualifier は先頭の修飾子。省略時は QualifierPass。
 	Qualifier Qualifier
-	Name      string
-	// Value is the text after ":" - an address for ip4/ip6, a domain for
-	// include/a/mx/exists. Empty when the term carries no value.
+	// Name は小文字化した mechanism 名。
+	Name string
+	// Value は ":" より後ろの文字列。ip4/ip6 ではアドレス、
+	// include/a/mx/exists ではドメイン名を表す。値を伴わない場合は空。
 	Value string
-	// Prefix4 and Prefix6 hold the dual-cidr-length of a/mx terms, or -1
-	// when the term does not specify one.
+	// Prefix4 と Prefix6 は a/mx が持つ dual-cidr-length を表す。
+	// 指定がない場合は -1 とし、評価時に既定値 (/32, /128) を補う。
 	Prefix4 int
 	Prefix6 int
 }
 
-// SpfRecord is a parsed spf TXT record.
+// SpfRecord は解析済みの SPF レコードを表す。
 type SpfRecord struct {
-	Txt        string
+	// Txt は元の TXT レコード。
+	Txt string
+	// Mechanisms はレコードに現れた順の mechanism。SPF は先に一致した
+	// mechanism で結果が決まるため、順序に意味がある。
 	Mechanisms []Mechanism
-	Redirect   string
-	Exp        string
-	// Unknown holds terms that could not be parsed. They are reported to the
-	// user rather than silently dropped.
+	// Redirect は redirect= 修飾子の値。指定がなければ空。
+	Redirect string
+	// Exp は exp= 修飾子の値。指定がなければ空。
+	Exp string
+	// Unknown は解釈できなかった項目である。黙って捨てると誤った判定に
+	// 気づけないため、利用者に報告できるよう保持する。
 	Unknown []string
 }
 
-// ParseSpfRecord parses a TXT record into its terms. Terms that cannot be
-// understood are collected in Unknown instead of failing the whole record.
+// ParseSpfRecord は TXT レコードを解析して各項目に分解する。
+//
+// 解釈できない項目があってもレコード全体を失敗とはせず、Unknown に集めて
+// 残りの項目の解析を続ける。1つの誤りで正しい項目まで評価されなくなるのを
+// 避けるためである。
 func ParseSpfRecord(txtRecord string) *SpfRecord {
 	record := &SpfRecord{Txt: txtRecord}
 
 	for i, field := range strings.Fields(txtRecord) {
+		// 先頭のバージョン文字列は modifier と同じ "name=value" の形を
+		// しているため、先に読み飛ばす。
 		if i == 0 && strings.EqualFold(field, spfVersion) {
 			continue
 		}
@@ -103,8 +117,11 @@ func ParseSpfRecord(txtRecord string) *SpfRecord {
 	return record
 }
 
-// splitModifier recognises "name=value" terms. A "=" that appears after a ":"
-// or "/" belongs to a mechanism value, not to a modifier.
+// splitModifier は "name=value" 形式の modifier を名前と値に分解する。
+// modifier でない場合は ok に false を返す。
+//
+// ":" や "/" より後ろの "=" は mechanism の値の一部なので、modifier の
+// 区切りとは見なさない。
 func splitModifier(field string) (name, value string, ok bool) {
 	equals := strings.Index(field, "=")
 	if equals <= 0 {
@@ -116,6 +133,8 @@ func splitModifier(field string) (name, value string, ok bool) {
 	return strings.ToLower(field[:equals]), field[equals+1:], true
 }
 
+// parseMechanism は項目1つを Mechanism に解析する。
+// mechanism として解釈できない場合は ErrInvalidMechanism を返す。
 func parseMechanism(field string) (Mechanism, error) {
 	mechanism := Mechanism{Raw: field, Qualifier: QualifierPass, Prefix4: -1, Prefix6: -1}
 
@@ -129,15 +148,17 @@ func parseMechanism(field string) (Mechanism, error) {
 		return mechanism, ErrInvalidMechanism
 	}
 
+	// mechanism 名は ":" (値) か "/" (プレフィックス長) の手前までである。
 	name, rest := term, ""
 	if i := strings.IndexAny(term, ":/"); i >= 0 {
 		name, rest = term[:i], term[i:]
 	}
 	mechanism.Name = strings.ToLower(name)
 
+	// 値の形式は mechanism ごとに異なるため、名前で分岐して解析する。
 	switch mechanism.Name {
 	case MechanismIP4, MechanismIP6:
-		// The address keeps its "/len" so that it can be parsed as a whole.
+		// アドレスは "/len" を含めたまま保持し、評価時にまとめて解釈する。
 		if !strings.HasPrefix(rest, ":") {
 			return mechanism, ErrInvalidMechanism
 		}
@@ -147,6 +168,7 @@ func parseMechanism(field string) (Mechanism, error) {
 		}
 
 	case MechanismA, MechanismMX:
+		// ドメイン名は省略でき、その後ろに dual-cidr-length が続きうる。
 		if strings.HasPrefix(rest, ":") {
 			rest = rest[1:]
 			if slash := strings.Index(rest, "/"); slash >= 0 {
@@ -165,6 +187,7 @@ func parseMechanism(field string) (Mechanism, error) {
 		}
 
 	case MechanismInclude, MechanismExists:
+		// これらはドメイン名が必須である。
 		if !strings.HasPrefix(rest, ":") || rest == ":" {
 			return mechanism, ErrInvalidMechanism
 		}
@@ -189,8 +212,10 @@ func parseMechanism(field string) (Mechanism, error) {
 	return mechanism, nil
 }
 
-// parseDualCidrLength parses the ["/" ip4-len] ["//" ip6-len] suffix of a/mx.
+// parseDualCidrLength は a/mx に続く ["/" ip4-len] ["//" ip6-len] を解析し、
+// mechanism の Prefix4 と Prefix6 に格納する。suffix は "/" で始まる。
 func parseDualCidrLength(suffix string, mechanism *Mechanism) error {
+	// "//64" のように IPv6 側だけを指定する形を先に判定する。
 	if strings.HasPrefix(suffix, "//") {
 		return parsePrefixLength(suffix[2:], 128, &mechanism.Prefix6)
 	}
@@ -205,6 +230,8 @@ func parseDualCidrLength(suffix string, mechanism *Mechanism) error {
 	return parsePrefixLength(body, 32, &mechanism.Prefix4)
 }
 
+// parsePrefixLength はプレフィックス長を解析して dst に格納する。
+// max はアドレス長 (IPv4 なら 32、IPv6 なら 128) を指定する。
 func parsePrefixLength(text string, max int, dst *int) error {
 	length, err := strconv.Atoi(text)
 	if err != nil || length < 0 || length > max {

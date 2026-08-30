@@ -4,6 +4,9 @@ import (
 	"testing"
 )
 
+// TestParseSpfRecordMechanisms は、修飾子の分離と mechanism 名の
+// 大文字小文字の扱いを検証する。どちらも修正前は誤っており、
+// 修飾子付きの項目が丸ごと無視されていた。
 func TestParseSpfRecordMechanisms(t *testing.T) {
 	record := ParseSpfRecord("v=spf1 ip4:192.0.2.0/24 -ip4:198.51.100.1 IP6:2001:db8::/32 ~all")
 
@@ -34,6 +37,8 @@ func TestParseSpfRecordMechanisms(t *testing.T) {
 	}
 }
 
+// TestParseSpfRecordDualCidrLength は、a/mx に続く
+// ["/" ip4-len] ["//" ip6-len] の各組み合わせを解析できることを検証する。
 func TestParseSpfRecordDualCidrLength(t *testing.T) {
 	tests := []struct {
 		term        string
@@ -65,6 +70,8 @@ func TestParseSpfRecordDualCidrLength(t *testing.T) {
 	}
 }
 
+// TestParseSpfRecordModifiers は、redirect= と exp= を modifier として
+// 扱い、mechanism と取り違えないことを検証する。
 func TestParseSpfRecordModifiers(t *testing.T) {
 	record := ParseSpfRecord("v=spf1 include:_spf.example.com redirect=_spf.example.org exp=why.example.com")
 
@@ -79,6 +86,8 @@ func TestParseSpfRecordModifiers(t *testing.T) {
 	}
 }
 
+// TestParseSpfRecordUnknownTerms は、解釈できない項目を Unknown に
+// 集めたうえで、残りの項目の解析を続けることを検証する。
 func TestParseSpfRecordUnknownTerms(t *testing.T) {
 	record := ParseSpfRecord("v=spf1 ip4:192.0.2.0/24 bogus ip4 include: -all")
 

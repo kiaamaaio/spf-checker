@@ -13,21 +13,27 @@ import (
 	"spf-checker/internal/validation"
 )
 
+// CheckCmd は IP アドレスが SPF レコードで認可されているかを判定する
+// check サブコマンドである。
 type CheckCmd struct {
-	domain  string
-	ipAddr  string
+	domain string
+	ipAddr string
+	// direct が true の場合、対象ドメインのレコード内だけで評価する。
 	direct  bool
 	timeout time.Duration
 }
 
+// Name はサブコマンド名を返す。
 func (c *CheckCmd) Name() string {
 	return "check"
 }
 
+// Synopsis はヘルプ一覧に表示する1行の説明を返す。
 func (c *CheckCmd) Synopsis() string {
 	return "check if an ip address is in the spf record"
 }
 
+// Usage は "help check" で表示する使い方を返す。
 func (c *CheckCmd) Usage() string {
 	return `check [-direct] -domain <domain> -ipaddr <ip address>:
 	Check if an ip address is authorized by the spf record.
@@ -44,6 +50,7 @@ func (c *CheckCmd) Usage() string {
 `
 }
 
+// SetFlags はこのサブコマンドのオプションを登録する。
 func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
 	set.StringVar(&c.domain, "domain", "", "domain to check")
 	set.StringVar(&c.ipAddr, "ipaddr", "", "ip address to check")
@@ -51,13 +58,18 @@ func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
 	set.DurationVar(&c.timeout, "timeout", defaultTimeout, "dns lookup timeout (0 for no limit)")
 }
 
+// Execute は SPF レコードを取得して評価し、判定結果を表示する。
+// 判定結果に応じた終了ステータスを返す。意味は Usage を参照。
 func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+	// 余分な位置引数は、オプションの綴り違いなど指定の誤りであることが多い。
+	// 黙って無視すると誤った条件で判定したまま気づけないため、エラーとする。
 	if f.NArg() > 0 {
 		fmt.Fprintf(os.Stderr, "unexpected arguments: %v\n", f.Args())
 		return exitUsageError
 	}
 
-	// Validate the ip address before spending a dns lookup on the domain.
+	// IP アドレスの検査を先に行う。指定が誤っているだけで DNS へ
+	// 問い合わせても無駄になるためである。
 	parsedIP, err := validation.ParseIP(c.ipAddr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v: %q\n", err, c.ipAddr)
@@ -85,6 +97,11 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 	}
 }
 
+// printEvaluation は判定結果を標準出力へ、警告を標準エラー出力へ書く。
+//
+// 判定の根拠となった mechanism とその出典ドメインも表示する。include を
+// 辿った結果の pass なのか、自ドメインのレコードによる pass なのかは
+// 利用者にとって意味が違うためである。
 func printEvaluation(txtRecord, domain, ipAddr string, evaluation *dns.Evaluation) {
 	fmt.Printf("%-15s : %s\n", "Domain", domain)
 	fmt.Printf("%-15s : %s\n", "IP", ipAddr)

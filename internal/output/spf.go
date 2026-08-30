@@ -1,3 +1,4 @@
+// Package output は、解析済みの SPF レコードを人が読みやすい形へ整形する。
 package output
 
 import (
@@ -7,8 +8,11 @@ import (
 	"spf-checker/internal/dns"
 )
 
+// labelWidth はラベル欄の桁数。値の開始位置を揃えるために使う。
 const labelWidth = 15
 
+// mechanismLabels は mechanism 名に対応する表示用のラベルである。
+// ここに無い mechanism は "Other" として表示する。
 var mechanismLabels = map[string]string{
 	dns.MechanismIP4:     "IPv4",
 	dns.MechanismIP6:     "IPv6",
@@ -20,8 +24,11 @@ var mechanismLabels = map[string]string{
 	dns.MechanismAll:     "All Mechanism",
 }
 
-// FormatSpfRecordAligned renders a parsed spf record as one labelled row per
-// term, in the order they appear in the record.
+// FormatSpfRecordAligned は SPF レコードを1項目1行に整形して返す。
+//
+// 項目はレコードに現れた順に並べる。SPF は先に一致した mechanism で結果が
+// 決まるため、順序自体が読み手にとっての情報になるためである。
+// 解釈できなかった項目も "Unknown" として表示し、黙って省かない。
 func FormatSpfRecordAligned(record *dns.SpfRecord) string {
 	var rows []string
 
@@ -48,6 +55,7 @@ func FormatSpfRecordAligned(record *dns.SpfRecord) string {
 	return strings.Join(rows, "\n")
 }
 
+// row はラベルと値を桁揃えした1行を返す。
 func row(label, value string) string {
 	return fmt.Sprintf("%-*s : %s", labelWidth, label, value)
 }

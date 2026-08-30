@@ -13,10 +13,14 @@ import (
 	"spf-checker/internal/dns"
 )
 
+// stubResolver は TXT レコードだけを固定で返す Resolver である。
+// サブコマンドの終了ステータスの検証が目的なので、アドレスと MX は
+// 常に失敗させ、ネットワークに依存しないようにしている。
 type stubResolver struct {
 	txt map[string][]string
 }
 
+// LookupTXT は登録済みの TXT レコードを返す。
 func (s stubResolver) LookupTXT(_ context.Context, name string) ([]string, error) {
 	records, ok := s.txt[name]
 	if !ok {
@@ -25,16 +29,20 @@ func (s stubResolver) LookupTXT(_ context.Context, name string) ([]string, error
 	return records, nil
 }
 
+// LookupIP は常に失敗する。このテストではアドレス解決を伴う
+// mechanism を対象にしていない。
 func (s stubResolver) LookupIP(_ context.Context, _, host string) ([]net.IP, error) {
 	return nil, fmt.Errorf("no such host: %s", host)
 }
 
+// LookupMX は常に失敗する。このテストでは MX を対象にしていない。
 func (s stubResolver) LookupMX(_ context.Context, name string) ([]*net.MX, error) {
 	return nil, fmt.Errorf("no such host: %s", name)
 }
 
-// withStubResolver points the commands at a fake resolver and silences stdout
-// for the duration of the test.
+// withStubResolver はサブコマンドの参照する Resolver を差し替え、
+// テストの間だけ標準出力と標準エラー出力を捨てる。
+// いずれも t.Cleanup で元に戻す。
 func withStubResolver(t *testing.T, txt map[string][]string) {
 	t.Helper()
 
@@ -55,6 +63,7 @@ func withStubResolver(t *testing.T, txt map[string][]string) {
 	})
 }
 
+// runCheck は check サブコマンドを args で実行し、終了ステータスを返す。
 func runCheck(t *testing.T, args ...string) subcommands.ExitStatus {
 	t.Helper()
 
@@ -68,6 +77,9 @@ func runCheck(t *testing.T, args ...string) subcommands.ExitStatus {
 	return command.Execute(context.Background(), set)
 }
 
+// TestCheckExitStatus は、判定結果と入力の誤りが終了ステータスに
+// 正しく対応することを検証する。修正前はどの経路でも 0 を返しており、
+// スクリプトから結果を判別できなかった。
 func TestCheckExitStatus(t *testing.T) {
 	withStubResolver(t, map[string][]string{
 		"example.test": {"v=spf1 ip4:192.0.2.0/24 -all"},
@@ -131,6 +143,8 @@ func TestCheckExitStatus(t *testing.T) {
 	}
 }
 
+// TestCheckFollowsIncludesByDefault は、オプションを指定しない場合に
+// include を辿ること、および -direct を指定すると辿らないことを検証する。
 func TestCheckFollowsIncludesByDefault(t *testing.T) {
 	withStubResolver(t, map[string][]string{
 		"example.test":      {"v=spf1 include:_spf.example.test -all"},
@@ -150,6 +164,7 @@ func TestCheckFollowsIncludesByDefault(t *testing.T) {
 	}
 }
 
+// TestListExitStatus は list サブコマンドの終了ステータスを検証する。
 func TestListExitStatus(t *testing.T) {
 	withStubResolver(t, map[string][]string{
 		"example.test": {"v=spf1 ip4:192.0.2.0/24 -all"},

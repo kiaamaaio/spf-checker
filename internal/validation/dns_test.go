@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// TestValidateDnsRecordName は、長さ・文字種・ラベル構成の検査を検証する。
+// SPF で使う _spf のようなアンダースコア始まりのラベルは許可し、
+// ハイフンで開始・終了する名前は拒否する。
 func TestValidateDnsRecordName(t *testing.T) {
 	tests := []struct {
 		name    string

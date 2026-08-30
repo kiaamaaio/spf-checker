@@ -7,6 +7,8 @@ import (
 	"spf-checker/internal/dns"
 )
 
+// TestFormatSpfRecordAligned は、各項目がレコードに現れた順に、
+// 対応するラベルを付けて出力されることを検証する。
 func TestFormatSpfRecordAligned(t *testing.T) {
 	record := dns.ParseSpfRecord("v=spf1 ip4:192.0.2.0/24 ip6:2001:db8::/32 include:_spf.example.com a mx bogus redirect=example.org ~all")
 
@@ -35,6 +37,8 @@ func TestFormatSpfRecordAligned(t *testing.T) {
 	}
 }
 
+// TestFormatSpfRecordAlignedEmpty は、空のレコードを渡しても
+// panic せず空文字列を返すことを検証する。
 func TestFormatSpfRecordAlignedEmpty(t *testing.T) {
 	if got := FormatSpfRecordAligned(dns.ParseSpfRecord("")); got != "" {
 		t.Errorf("want empty output, got %q", got)

@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+// TestParseIP は、IPv4 と IPv6 を解釈できること、および解釈できない
+// 文字列に対して ErrInvalidIpAddress を返すことを検証する。
 func TestParseIP(t *testing.T) {
 	tests := []struct {
 		name    string

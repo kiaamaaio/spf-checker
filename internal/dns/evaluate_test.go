@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+// evaluate は resolver に登録済みの domain のレコードを ipaddr に対して
+// 評価する。テストごとの定型的な組み立てをまとめた補助関数である。
 func evaluate(t *testing.T, resolver *fakeResolver, domain, ipaddr string, recursive bool) *Evaluation {
 	t.Helper()
 	record, ok := resolver.txt[domain]
@@ -17,6 +19,9 @@ func evaluate(t *testing.T, resolver *fakeResolver, domain, ipaddr string, recur
 		Check(context.Background(), domain, record[0], net.ParseIP(ipaddr))
 }
 
+// TestCheckIPMechanisms は ip4/ip6 mechanism の評価を検証する。
+// プレフィックス長の省略、修飾子、大文字小文字、アドレス族の分離は
+// いずれも修正前に誤りがあったため、回帰テストとして残している。
 func TestCheckIPMechanisms(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -73,6 +78,9 @@ func TestCheckIPMechanisms(t *testing.T) {
 	}
 }
 
+// TestCheckInclude は include の評価を検証する。include は評価結果が
+// pass のときだけ一致とみなすため、include 先の "-all" が呼び出し元の
+// 結果になってはならない。
 func TestCheckInclude(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["example.test"] = []string{"v=spf1 include:_spf.example.test -all"}
@@ -117,6 +125,8 @@ func TestCheckInclude(t *testing.T) {
 	})
 }
 
+// TestCheckIncludeLoop は、互いを include し合うレコードでも
+// 無限に辿らずに評価を終えることを検証する。
 func TestCheckIncludeLoop(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["a.test"] = []string{"v=spf1 include:b.test -all"}
@@ -132,6 +142,8 @@ func TestCheckIncludeLoop(t *testing.T) {
 	}
 }
 
+// TestCheckDnsLookupLimit は、DNS ルックアップ数が上限を超えたときに
+// permerror となることを検証する (RFC 7208 4.6.4)。
 func TestCheckDnsLookupLimit(t *testing.T) {
 	resolver := newFakeResolver()
 	// A chain of 12 includes, one lookup each, exceeds the limit of 10.
@@ -150,6 +162,8 @@ func TestCheckDnsLookupLimit(t *testing.T) {
 	}
 }
 
+// TestCheckRedirect は redirect= の評価を検証する。redirect は
+// どの mechanism も一致しなかった場合にのみ適用される (RFC 7208 6.1)。
 func TestCheckRedirect(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["example.test"] = []string{"v=spf1 ip4:192.0.2.0/24 redirect=_spf.example.test"}
@@ -170,6 +184,8 @@ func TestCheckRedirect(t *testing.T) {
 	})
 }
 
+// TestCheckAAndMXMechanisms は a/mx mechanism の評価を検証する。
+// IPv4 と IPv6 の双方、およびプレフィックス長の指定を含む。
 func TestCheckAAndMXMechanisms(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["example.test"] = []string{"v=spf1 a mx a:web.example.test/24 -all"}
@@ -200,6 +216,8 @@ func TestCheckAAndMXMechanisms(t *testing.T) {
 	}
 }
 
+// TestCheckUnsupportedTermsAreReported は、未対応の項目を黙って
+// 読み飛ばさず警告として報告することを検証する。
 func TestCheckUnsupportedTermsAreReported(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["example.test"] = []string{"v=spf1 ptr include:%{d}.example.test -all"}
@@ -217,10 +235,13 @@ func TestCheckUnsupportedTermsAreReported(t *testing.T) {
 	}
 }
 
+// chainDomain は include の連鎖を作るための連番のドメイン名を返す。
 func chainDomain(i int) string {
 	return "n" + string(rune('a'+i)) + ".test"
 }
 
+// hasWarning は警告のいずれかが substring を含むかを返す。
+// 警告文そのものではなく要点だけを検証するために使う。
 func hasWarning(warnings []string, substring string) bool {
 	for _, warning := range warnings {
 		if strings.Contains(warning, substring) {
@@ -230,6 +251,8 @@ func hasWarning(warnings []string, substring string) bool {
 	return false
 }
 
+// TestCheckInconclusiveInDirectMode は、非再帰モードで項目を読み飛ばした
+// 場合にのみ「結論が確定しない」旨の警告が出ることを検証する。
 func TestCheckInconclusiveInDirectMode(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["example.test"] = []string{"v=spf1 include:_spf.example.test -all"}

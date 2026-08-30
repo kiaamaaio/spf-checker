@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+// TestGetSpfRecord は、複数の TXT レコードから SPF レコードを1つ
+// 取り出せること、およびバージョン文字列の判定を検証する。
 func TestGetSpfRecord(t *testing.T) {
 	const spfRecord = "v=spf1 ip4:192.0.2.1/24 -all"
 
@@ -65,6 +67,8 @@ func TestGetSpfRecord(t *testing.T) {
 	}
 }
 
+// TestGetSpfRecordLookupFailure は、名前解決に失敗したときに
+// ErrNoTxtRecord を返すことを検証する。
 func TestGetSpfRecordLookupFailure(t *testing.T) {
 	resolver := newFakeResolver()
 
