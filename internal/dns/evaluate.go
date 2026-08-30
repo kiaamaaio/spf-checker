@@ -43,8 +43,9 @@ type Evaluation struct {
 }
 
 // Evaluator walks an spf record and decides whether an ip is authorized.
-// When recursive is false, terms that would require further dns queries
-// (include, redirect, a, mx, exists) are skipped and reported as warnings.
+// When recursive is false the evaluation stays inside the record of the domain
+// being checked: terms that would require further dns queries (include,
+// redirect, a, mx, exists) are skipped and reported as warnings.
 type Evaluator struct {
 	resolver  Resolver
 	recursive bool
@@ -75,7 +76,7 @@ func (e *Evaluator) Check(ctx context.Context, domain, txtRecord string, ipaddr 
 
 	// A conclusive "all" verdict cannot be trusted when terms were skipped.
 	if e.skipped && result != ResultPass && e.matchedName == MechanismAll {
-		e.warn("result is inconclusive: %q matched but some terms were not followed (use -recursive)", e.matchedBy)
+		e.warn("result is inconclusive: %q matched but -direct left some terms unevaluated", e.matchedBy)
 	}
 
 	return &Evaluation{
@@ -126,7 +127,7 @@ func (e *Evaluator) evaluateRecord(ctx context.Context, record *SpfRecord, domai
 	// redirect only applies when no mechanism matched (RFC 7208 6.1).
 	if record.Redirect != "" {
 		if !e.recursive {
-			e.skip("redirect=%s in the record of %s was not followed (use -recursive)", record.Redirect, domain)
+			e.skip("redirect=%s in the record of %s was not followed (-direct)", record.Redirect, domain)
 			return ResultNeutral
 		}
 		if containsMacro(record.Redirect) {
@@ -289,7 +290,7 @@ func (e *Evaluator) matchExists(ctx context.Context, mechanism Mechanism, domain
 // the recursive flag, macro support and an empty target.
 func (e *Evaluator) resolveTarget(mechanism Mechanism, target, domain string) (string, bool) {
 	if !e.recursive {
-		e.skip("%q in the record of %s was not followed (use -recursive)", mechanism.Raw, domain)
+		e.skip("%q in the record of %s was not followed (-direct)", mechanism.Raw, domain)
 		return "", false
 	}
 	if target == "" {

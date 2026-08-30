@@ -131,6 +131,25 @@ func TestCheckExitStatus(t *testing.T) {
 	}
 }
 
+func TestCheckFollowsIncludesByDefault(t *testing.T) {
+	withStubResolver(t, map[string][]string{
+		"example.test":      {"v=spf1 include:_spf.example.test -all"},
+		"_spf.example.test": {"v=spf1 ip4:192.0.2.0/24 -all"},
+	})
+
+	args := []string{"-domain", "example.test", "-ipaddr", "192.0.2.1"}
+
+	if got := runCheck(t, args...); got != subcommands.ExitSuccess {
+		t.Errorf("exit status = %d; want %d (includes must be followed by default)", got, subcommands.ExitSuccess)
+	}
+
+	// -direct stays inside the record of the domain itself, so the same ip is
+	// no longer authorized.
+	if got := runCheck(t, append(args, "-direct")...); got != exitNotAuthorized {
+		t.Errorf("exit status with -direct = %d; want %d", got, exitNotAuthorized)
+	}
+}
+
 func TestListExitStatus(t *testing.T) {
 	withStubResolver(t, map[string][]string{
 		"example.test": {"v=spf1 ip4:192.0.2.0/24 -all"},

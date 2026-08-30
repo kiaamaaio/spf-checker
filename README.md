@@ -31,11 +31,10 @@ IP アドレスが SPF レコードで認可されているかを判定します
 spf-checker check -domain github.com -ipaddr 192.30.252.1
 ```
 
-`-recursive` を付けると `include` / `redirect` / `a` / `mx` を辿って評価します。
-付けない場合、これらの項目は評価されず警告として報告されます。
+`include` / `redirect` / `a` / `mx` は既定で辿ります。
 
 ```
-spf-checker check -domain github.com -ipaddr 209.85.220.41 -recursive
+spf-checker check -domain github.com -ipaddr 209.85.220.41
 ```
 
 出力例:
@@ -48,6 +47,17 @@ Result          : pass
 Matched         : ip4:209.85.128.0/17 (in the record of _netblocks.google.com)
 DNS Lookups     : 2
 ```
+
+`-direct` を付けると、そのドメイン自身のレコード内だけで評価します。
+「認可されているか」ではなく「このレコードに直接書かれているか」を確認したいときに使います。
+辿らなかった項目は警告として報告されます。
+
+```
+spf-checker check -domain github.com -ipaddr 209.85.220.41 -direct
+```
+
+既定の結果と `-direct` の結果を比べると、その認可が自ドメインのレコード由来なのか、
+`include` 先に委譲されているのかを切り分けられます。
 
 ## 判定結果と終了ステータス
 
@@ -78,7 +88,7 @@ DNS Lookups     : 2
 | --- | --- | --- | --- |
 | `-domain` | list / check | - | 対象ドメイン |
 | `-ipaddr` | check | - | 判定する IP アドレス |
-| `-recursive` | check | `false` | `include` / `redirect` / `a` / `mx` を辿る |
+| `-direct` | check | `false` | `include` / `redirect` / `a` / `mx` を辿らず、対象ドメインのレコードだけで評価する |
 | `-timeout` | list / check | `10s` | DNS ルックアップのタイムアウト (`0` で無制限) |
 
 ## 制限事項

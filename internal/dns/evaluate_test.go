@@ -103,7 +103,7 @@ func TestCheckInclude(t *testing.T) {
 		}
 	})
 
-	t.Run("includes are not followed without the recursive flag", func(t *testing.T) {
+	t.Run("includes are not followed in direct mode", func(t *testing.T) {
 		got := evaluate(t, resolver, "example.test", "198.51.100.7", false)
 		if got.Result == ResultPass {
 			t.Fatalf("result = pass; want a non-pass result when includes are skipped")
@@ -111,8 +111,8 @@ func TestCheckInclude(t *testing.T) {
 		if got.Lookups != 0 {
 			t.Errorf("lookups = %d; want 0", got.Lookups)
 		}
-		if !hasWarning(got.Warnings, "-recursive") {
-			t.Errorf("want a warning mentioning -recursive, got %v", got.Warnings)
+		if !hasWarning(got.Warnings, "-direct") {
+			t.Errorf("want a warning mentioning -direct, got %v", got.Warnings)
 		}
 	})
 }
@@ -230,7 +230,7 @@ func hasWarning(warnings []string, substring string) bool {
 	return false
 }
 
-func TestCheckInconclusiveWithoutRecursion(t *testing.T) {
+func TestCheckInconclusiveInDirectMode(t *testing.T) {
 	resolver := newFakeResolver()
 	resolver.txt["example.test"] = []string{"v=spf1 include:_spf.example.test -all"}
 	resolver.txt["_spf.example.test"] = []string{"v=spf1 ip4:192.0.2.0/24 -all"}

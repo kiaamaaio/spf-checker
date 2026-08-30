@@ -14,10 +14,10 @@ import (
 )
 
 type CheckCmd struct {
-	domain    string
-	ipAddr    string
-	recursive bool
-	timeout   time.Duration
+	domain  string
+	ipAddr  string
+	direct  bool
+	timeout time.Duration
 }
 
 func (c *CheckCmd) Name() string {
@@ -29,8 +29,12 @@ func (c *CheckCmd) Synopsis() string {
 }
 
 func (c *CheckCmd) Usage() string {
-	return `check [-recursive] -domain <domain> -ipaddr <ip address>:
+	return `check [-direct] -domain <domain> -ipaddr <ip address>:
 	Check if an ip address is authorized by the spf record.
+
+	include, redirect, a and mx terms are followed by default. Use -direct to
+	evaluate only the record of the domain itself, which answers "is this ip
+	listed here" rather than "is this ip authorized".
 
 	Exit status:
 	  0  pass         the ip is authorized
@@ -43,7 +47,7 @@ func (c *CheckCmd) Usage() string {
 func (c *CheckCmd) SetFlags(set *flag.FlagSet) {
 	set.StringVar(&c.domain, "domain", "", "domain to check")
 	set.StringVar(&c.ipAddr, "ipaddr", "", "ip address to check")
-	set.BoolVar(&c.recursive, "recursive", false, "follow include, redirect, a and mx terms")
+	set.BoolVar(&c.direct, "direct", false, "evaluate only this domain's own record, without following include, redirect, a or mx")
 	set.DurationVar(&c.timeout, "timeout", defaultTimeout, "dns lookup timeout (0 for no limit)")
 }
 
@@ -68,7 +72,7 @@ func (c *CheckCmd) Execute(ctx context.Context, f *flag.FlagSet, args ...interfa
 		return status
 	}
 
-	evaluation := dns.NewEvaluator(dns.DefaultResolver, c.recursive).Check(ctx, c.domain, txtRecord, parsedIP)
+	evaluation := dns.NewEvaluator(dns.DefaultResolver, !c.direct).Check(ctx, c.domain, txtRecord, parsedIP)
 	printEvaluation(txtRecord, c.domain, c.ipAddr, evaluation)
 
 	switch evaluation.Result {
