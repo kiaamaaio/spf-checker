@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/require-go-checks.py\"",
+            "timeout": 300,
+            "onFailure": "block",
+            "statusMessage": "コミット前に go vet / go test を実行中..."
+          }
+        ]
+      }
+    ]
+  }
+}
