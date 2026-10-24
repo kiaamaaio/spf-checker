@@ -12,15 +12,22 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 # git のサブコマンドが commit のときだけ検査する。
 # git -C path commit のようなグローバルオプション付きも拾い、
 # git log --grep=commit のような読み取り専用コマンドは拾わない。
-GIT_COMMIT_RE = re.compile(r"(?:^|[^\w.-])git(?:\s+-\S+(?:\s+[^-\s]\S*)?)*\s+commit(?:\s|$)")
+# オプション値は -c user.name="A B" のような引用符付きの空白も 1 トークンとして扱い、
+# commit の直後が ; ) & | などで終わる場合も拾う。
+_TOKEN = r"""(?:[^\s"']|"[^"]*"|'[^']*')+"""
+GIT_COMMIT_RE = re.compile(
+    r"(?:^|[^\w.-])git(?:\s+-%s(?:\s+(?!-)%s)?)*\s+commit(?![\w-])" % (_TOKEN, _TOKEN))
 
 # 実行順に並べたチェック。静的解析を先に通してからテストを走らせる。
 CHECKS = [["vet", "./..."], ["test", "./..."]]
 MAX_OUTPUT = 3000
+# フック自体のタイムアウト (settings.json の 300 秒) より前に打ち切り、理由を返せるようにする。
+CHECK_BUDGET = 280
 
 
 def deny(reason):
@@ -49,7 +56,8 @@ def main():
     if not GIT_COMMIT_RE.search(command):
         return
 
-    cwd = payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    # シェルがサブディレクトリにいても ./... がモジュール全体を指すよう、プロジェクトルートを優先する。
+    cwd = os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or os.getcwd()
     if not os.path.isdir(cwd):
         cwd = os.getcwd()
 
@@ -58,11 +66,20 @@ def main():
         deny("go コマンドが見つからず go vet / go test を実行できませんでした。"
              "未確認のままコミットしないため中止しました。")
 
+    deadline = time.monotonic() + CHECK_BUDGET
     for args in CHECKS:
         label = "go " + " ".join(args)
-        proc = subprocess.run([go] + args, cwd=cwd, capture_output=True, text=True)
+        try:
+            proc = subprocess.run([go] + args, cwd=cwd, stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT, text=True,
+                                  timeout=max(1, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            deny("%s が %d 秒以内に終わらなかったためコミットを中止しました。"
+                 "ハングしているテストが無いか確認してください。" % (label, CHECK_BUDGET))
         if proc.returncode != 0:
-            output = (proc.stdout + proc.stderr)[-MAX_OUTPUT:]
+            # 成功したパッケージの ok / ? 行を除き、失敗の詳細が切り捨てられにくくする。
+            lines = [l for l in proc.stdout.splitlines() if not l.startswith(("ok  ", "?   "))]
+            output = "\n".join(lines)[-MAX_OUTPUT:]
             deny("%s が失敗したためコミットを中止しました。"
                  "指摘を修正し、パスしてから再度コミットしてください。\n\n%s" % (label, output))
 
